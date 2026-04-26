@@ -1,0 +1,151 @@
+from collections import defaultdict
+from src.predict import predict_match
+import random
+
+def simulate_group(group_teams, model, team_stats):
+    table = defaultdict(lambda:{
+        "points": 0,
+        "gd":0
+    })
+
+    matches = [
+        (group_teams[0], group_teams[1]),
+        (group_teams[2], group_teams[3]),
+        (group_teams[0], group_teams[2]),
+        (group_teams[1], group_teams[3]),
+        (group_teams[0], group_teams[3]),
+        (group_teams[1], group_teams[2])
+    ]
+
+    for team_a, team_b in matches:
+        result = predict_match(model, team_stats, team_a, team_b, is_home=0)
+
+        if result == "Win":
+            table[team_a]["points"] += 3
+            table[team_a]["gd"] +=1
+            table[team_b]["gd"] -=1
+        elif result == "Loss":
+            table[team_b]["points"] += 3
+            table[team_b]["gd"] += 1
+            table[team_a]["gd"] -= 1
+        else:
+            table[team_a]["points"] += 1
+            table[team_b]["points"] += 1
+
+    sorted_teams = sorted(
+        table.items(),
+        key = lambda x:(x[1]["points"], x[1]["gd"]),
+        reverse = True
+    )
+
+    return sorted_teams 
+
+
+def knockout_match(team_a, team_b, model, team_stats):
+    result = predict_match(model, team_stats, team_a, team_b, is_home=0)
+
+    if result == "Win":
+        return team_a
+    elif result == "Loss":
+        return team_b
+    else:
+        return random.choice([team_a, team_b])
+    
+
+def generate_round_of_32(groups_results):
+    qualified = []
+    third_place = []
+
+    for group in groups_results:
+        # Top 2 directly qualify
+        qualified.append(group[0][0])
+        qualified.append(group[1][0])
+
+        # Store 3rd place
+        third_place.append(group[2])
+
+    # Sort 3rd place teams
+    third_place_sorted = sorted(
+        third_place,
+        key=lambda x: (x[1]["points"], x[1]["gd"]),
+        reverse=True
+    )
+
+    # Take best 8
+    best_third = [team[0] for team in third_place_sorted[:8]]
+
+    return qualified + best_third
+
+
+def play_knockout_round(teams, model, team_stats, round_name):
+    print(f"\n===== {round_name} =====")
+
+    winners = []
+
+    for i in range(0, len(teams), 2):
+        t1 = teams[i]
+        t2 = teams[i+1]
+
+        winner = knockout_match(t1, t2, model, team_stats)
+        print(f"{t1} vs {t2} → {winner}")
+
+        winners.append(winner)
+
+    return winners
+
+
+def simulate_tournament(model, team_stats):
+
+    groups = {
+        "A": ["Mexico", "South Africa", "South Korea", "Denmark"],
+
+        "B": ["Canada", "Italy", "Qatar", "Switzerland"],
+
+        "C": ["Brazil", "Morocco", "Haiti", "Scotland"],
+
+        "D": ["United States", "Paraguay", "Australia", "Turkey"],
+
+        "E": ["Germany", "Curacao", "Ivory Coast", "Ecuador"],
+
+        "F": ["Netherlands", "Japan", "Albania", "Tunisia"],
+
+        "G": ["Belgium", "Egypt", "Iran", "New Zealand"],
+
+        "H": ["Spain", "Cape Verde", "Saudi Arabia", "Uruguay"],
+
+        "I": ["France", "Senegal", "Bolivia", "Norway"],
+
+        "J": ["Argentina", "Algeria", "Austria", "Jordan"],
+
+        "K": ["Portugal", "Jamaica", "Uzbekistan", "Colombia"],
+
+        "L": ["England", "Croatia", "Ghana", "Panama"],
+    }
+
+    group_results = []
+
+    print("\n===== GROUP STAGE =====")
+
+    for group_name, teams in groups.items():
+        print(f"\n--- Group {group_name} ---")
+        result = simulate_group(teams, model, team_stats)
+
+        for team, stats in result:
+            print(team, stats)
+
+        group_results.append(result)
+
+    # Round of 32
+    round_32 = generate_round_of_32(group_results)
+
+    # Shuffle for randomness
+    random.shuffle(round_32)
+
+    r16 = play_knockout_round(round_32, model, team_stats, "ROUND OF 32")
+    qf = play_knockout_round(r16, model, team_stats, "ROUND OF 16")
+    sf = play_knockout_round(qf, model, team_stats, "QUARTER FINAL")
+    final = play_knockout_round(sf, model, team_stats, "SEMI FINAL")
+
+    champion = knockout_match(final[0], final[1], model, team_stats)
+
+    print(f"\n🏆 WORLD CUP WINNER: {champion}")
