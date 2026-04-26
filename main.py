@@ -6,10 +6,10 @@ df, team_stats = load_and_preprocess()
 
 model = train_model(df)
 
-team_a = "France"
-team_b = "Germany"
+team_a = "Spain"
+team_b = "Brazil"
 
-result = predict_match(model, team_stats, team_a, team_b)
+result = predict_match(model, team_stats, team_a, team_b,is_home=1)
 
 if result == "Win":
     print(f"{team_a} will WIN against {team_b}")
