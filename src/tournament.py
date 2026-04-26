@@ -2,7 +2,7 @@ from collections import defaultdict
 from src.predict import predict_match
 import random
 
-def simulate_group(group_teams, model, team_stats):
+def simulate_group(group_teams, model, team_stats, verbose=True):
     table = defaultdict(lambda:{
         "points": 0,
         "gd":0
@@ -42,7 +42,12 @@ def simulate_group(group_teams, model, team_stats):
 
 
 def knockout_match(team_a, team_b, model, team_stats):
-    result = predict_match(model, team_stats, team_a, team_b, is_home=0)
+    probs = predict_match(model, team_stats, team_a, team_b, is_home=0)
+
+    choices = ["Win", "Loss", "Draw"]
+    weights = [probs.get(c, 0) for c in choices]
+
+    result = random.choices(choices, weights=weights)[0]
 
     if result == "Win":
         return team_a
@@ -77,8 +82,9 @@ def generate_round_of_32(groups_results):
     return qualified + best_third
 
 
-def play_knockout_round(teams, model, team_stats, round_name):
-    print(f"\n===== {round_name} =====")
+def play_knockout_round(teams, model, team_stats, round_name, verbose=True):
+    if verbose:
+        print(f"\n===== {round_name} =====")
 
     winners = []
 
@@ -87,14 +93,33 @@ def play_knockout_round(teams, model, team_stats, round_name):
         t2 = teams[i+1]
 
         winner = knockout_match(t1, t2, model, team_stats)
-        print(f"{t1} vs {t2} → {winner}")
+        if verbose:
+            print(f"{t1} vs {t2} → {winner}")
 
         winners.append(winner)
 
     return winners
 
+def simulate_multiple(model, team_stats, n=100):
+    winners = {}
 
-def simulate_tournament(model, team_stats):
+    # Show ONLY first simulation
+    print("\n===== SAMPLE TOURNAMENT =====")
+    simulate_tournament(model, team_stats, verbose=True)
+
+    # Run rest silently
+    for _ in range(n):
+        winner = simulate_tournament(model, team_stats, verbose=False)
+        winners[winner] = winners.get(winner, 0) + 1
+
+    print("\n===== FINAL PROBABILITIES =====")
+
+    for team, count in sorted(winners.items(), key=lambda x: x[1], reverse=True):
+        prob = (count / n) * 100
+        print(f"{team}: {prob:.2f}%")
+
+
+def simulate_tournament(model, team_stats, verbose=True):
 
     groups = {
         "A": ["Mexico", "South Africa", "South Korea", "Denmark"],
@@ -123,15 +148,17 @@ def simulate_tournament(model, team_stats):
     }
 
     group_results = []
-
-    print("\n===== GROUP STAGE =====")
+    if verbose:
+        print("\n===== GROUP STAGE =====")
 
     for group_name, teams in groups.items():
-        print(f"\n--- Group {group_name} ---")
-        result = simulate_group(teams, model, team_stats)
+        if verbose:
+            print(f"\n--- Group {group_name} ---")
+        result = simulate_group(teams, model, team_stats,verbose)
 
         for team, stats in result:
-            print(team, stats)
+            if verbose:
+                print(team, stats)
 
         group_results.append(result)
 
@@ -141,11 +168,12 @@ def simulate_tournament(model, team_stats):
     # Shuffle for randomness
     random.shuffle(round_32)
 
-    r16 = play_knockout_round(round_32, model, team_stats, "ROUND OF 32")
-    qf = play_knockout_round(r16, model, team_stats, "ROUND OF 16")
-    sf = play_knockout_round(qf, model, team_stats, "QUARTER FINAL")
-    final = play_knockout_round(sf, model, team_stats, "SEMI FINAL")
+    r16 = play_knockout_round(round_32, model, team_stats, "ROUND OF 32",verbose)
+    qf = play_knockout_round(r16, model, team_stats, "ROUND OF 16",verbose)
+    sf = play_knockout_round(qf, model, team_stats, "QUARTER FINAL",verbose)
+    final = play_knockout_round(sf, model, team_stats, "SEMI FINAL",verbose)
 
     champion = knockout_match(final[0], final[1], model, team_stats)
-
-    print(f"\n🏆 WORLD CUP WINNER: {champion}")
+    if verbose:
+        print(f"\n🏆 WORLD CUP WINNER: {champion}")
+    return champion
