@@ -11,7 +11,7 @@ def main():
     model = train_model(df)
 
     print("\nStarting FIFA World Cup Simulation...")
-    simulate_multiple(model, team_stats, n=100)
+    simulate_multiple(model, team_stats, n=50)
     
 
 if __name__ == "__main__":

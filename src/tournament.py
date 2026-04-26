@@ -2,6 +2,8 @@ from collections import defaultdict
 from src.predict import predict_match
 import random
 
+from src.visualize import plot_probabilities
+
 def simulate_group(group_teams, model, team_stats, verbose=True):
     table = defaultdict(lambda:{
         "points": 0,
@@ -18,7 +20,14 @@ def simulate_group(group_teams, model, team_stats, verbose=True):
     ]
 
     for team_a, team_b in matches:
-        result = predict_match(model, team_stats, team_a, team_b, is_home=0)
+        probs = predict_match(model, team_stats, team_a, team_b, is_home=0)
+        if max(probs.values()) > 0.75:
+            result = max(probs, key=probs.get)
+        else:
+            result = random.choices(
+                ["Win", "Loss", "Draw"],
+                weights=[probs.get("Win",0), probs.get("Loss",0), probs.get("Draw",0)]
+            )[0]
 
         if result == "Win":
             table[team_a]["points"] += 3
@@ -47,7 +56,13 @@ def knockout_match(team_a, team_b, model, team_stats):
     choices = ["Win", "Loss", "Draw"]
     weights = [probs.get(c, 0) for c in choices]
 
-    result = random.choices(choices, weights=weights)[0]
+    if max(probs.values()) > 0.75:
+        result = max(probs, key=probs.get)
+    else:
+        result = random.choices(
+            ["Win", "Loss", "Draw"],
+            weights=[probs.get("Win",0), probs.get("Loss",0), probs.get("Draw",0)]
+        )[0]
 
     if result == "Win":
         return team_a
@@ -117,6 +132,8 @@ def simulate_multiple(model, team_stats, n=100):
     for team, count in sorted(winners.items(), key=lambda x: x[1], reverse=True):
         prob = (count / n) * 100
         print(f"{team}: {prob:.2f}%")
+    
+    plot_probabilities(winners)
 
 
 def simulate_tournament(model, team_stats, verbose=True):
