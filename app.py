@@ -65,21 +65,36 @@ with col1:
     if st.button("Predict Match"):
         probs = predict_match(model, team_stats, team_a, team_b)
 
-        colA, colB = st.columns(2)
+        colA, colMid, colB = st.columns([1, 2, 1])
 
         with colA:
-            st.image(flag_urls.get(team_a, ""), width=50)
-            st.write(team_a)
+            st.image(flag_urls.get(team_a, ""), width=80)
+            st.markdown(f"**{team_a}**")
+
+        with colMid:
+            st.markdown("### ⚔️ Match Result")
+
+            st.markdown(f"## {team_a} vs {team_b}")
+
+            st.markdown(f"""
+            <div style='text-align: center; font-size:18px;'>
+                <b>{team_a} Win:</b> {round(probs.get("Win", 0) * 100, 2)}%<br>
+                <b>{team_b} Win:</b> {round(probs.get("Loss", 0) * 100, 2)}%<br>
+                <b>Draw:</b> {round(probs.get("Draw", 0) * 100, 2)}%
+            </div>
+            """, unsafe_allow_html=True)
 
         with colB:
-            st.image(flag_urls.get(team_b, ""), width=50)
-            st.write(team_b)
+            st.image(flag_urls.get(team_b, ""), width=80)
+            st.markdown(f"**{team_b}**")
 
         st.write({
             f"{team_a} Win %": round(probs.get("Win", 0) * 100, 2),
             f"{team_b} Win %": round(probs.get("Loss", 0) * 100, 2),
             "Draw %": round(probs.get("Draw", 0) * 100, 2)
         })
+
+        st.success(f"Most likely winner: {max(probs, key=probs.get)}")
 
 
 # =========================
