@@ -3,6 +3,32 @@ from src.data_preprocessing import load_and_preprocess
 from src.model import train_model
 from src.predict import predict_match
 from src.tournament import simulate_once
+import plotly.graph_objects as go
+
+
+flag_urls = {
+    "Argentina": "https://flagcdn.com/w40/ar.png",
+    "Brazil": "https://flagcdn.com/w40/br.png",
+    "France": "https://flagcdn.com/w40/fr.png",
+    "Germany": "https://flagcdn.com/w40/de.png",
+    "Spain": "https://flagcdn.com/w40/es.png",
+    "England": "https://flagcdn.com/w40/gb-eng.png",
+    "Portugal": "https://flagcdn.com/w40/pt.png",
+    "Netherlands": "https://flagcdn.com/w40/nl.png",
+    "Italy": "https://flagcdn.com/w40/it.png",
+    "Belgium": "https://flagcdn.com/w40/be.png",
+    "Croatia": "https://flagcdn.com/w40/hr.png",
+    "Uruguay": "https://flagcdn.com/w40/uy.png",
+    "Mexico": "https://flagcdn.com/w40/mx.png",
+    "USA": "https://flagcdn.com/w40/us.png",
+    "United States": "https://flagcdn.com/w40/us.png",
+    "Japan": "https://flagcdn.com/w40/jp.png",
+    "South Korea": "https://flagcdn.com/w40/kr.png",
+    "Morocco": "https://flagcdn.com/w40/ma.png",
+    "Senegal": "https://flagcdn.com/w40/sn.png",
+    "Qatar": "https://flagcdn.com/w40/qa.png"
+    
+}
 
 st.set_page_config(page_title="FIFA Predictor", layout="wide")
 
@@ -39,7 +65,15 @@ with col1:
     if st.button("Predict Match"):
         probs = predict_match(model, team_stats, team_a, team_b)
 
-        st.subheader(f"{team_a} vs {team_b}")
+        colA, colB = st.columns(2)
+
+        with colA:
+            st.image(flag_urls.get(team_a, ""), width=50)
+            st.write(team_a)
+
+        with colB:
+            st.image(flag_urls.get(team_b, ""), width=50)
+            st.write(team_b)
 
         st.write({
             f"{team_a} Win %": round(probs.get("Win", 0) * 100, 2),
@@ -69,4 +103,41 @@ with col2:
         total = sum(winners.values())
         probs = {team: (count / total) * 100 for team, count in winners.items()}
 
-        st.bar_chart(probs)
+        sorted_probs = dict(sorted(probs.items(), key=lambda x: x[1], reverse=True))
+
+        teams = list(sorted_probs.keys())
+        values = list(sorted_probs.values())
+
+        fig = go.Figure()
+
+        fig.add_trace(go.Bar(
+            x=values,
+            y=teams,
+            orientation='h'
+        ))
+
+        # Add flags as images
+        for i, team in enumerate(teams):
+            if team in flag_urls:
+                fig.add_layout_image(
+                    dict(
+                        source=flag_urls[team],
+                        x=values[i] + 1,
+                        y=i,
+                        xref="x",
+                        yref="y",
+                        sizex=2,
+                        sizey=0.5,
+                        xanchor="left",
+                        yanchor="middle"
+                    )
+                )
+
+        fig.update_layout(
+            title="World Cup Winning Probabilities",
+            xaxis_title="Probability (%)",
+            yaxis_title="Teams",
+            height=600
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
