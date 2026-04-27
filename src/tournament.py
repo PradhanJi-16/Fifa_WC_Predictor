@@ -194,3 +194,6 @@ def simulate_tournament(model, team_stats, verbose=True):
     if verbose:
         print(f"\n🏆 WORLD CUP WINNER: {champion}")
     return champion
+
+def simulate_once(model, team_stats):
+    return simulate_tournament(model, team_stats, verbose=False)
