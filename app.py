@@ -88,11 +88,11 @@ with col1:
             st.image(flag_urls.get(team_b, ""), width=80)
             st.markdown(f"**{team_b}**")
 
-        st.write({
-            f"{team_a} Win %": round(probs.get("Win", 0) * 100, 2),
-            f"{team_b} Win %": round(probs.get("Loss", 0) * 100, 2),
-            "Draw %": round(probs.get("Draw", 0) * 100, 2)
-        })
+        # st.write({
+        #     f"{team_a} Win %": round(probs.get("Win", 0) * 100, 2),
+        #     f"{team_b} Win %": round(probs.get("Loss", 0) * 100, 2),
+        #     "Draw %": round(probs.get("Draw", 0) * 100, 2)
+        # })
 
         st.success(f"Most likely winner: {max(probs, key=probs.get)}")
 
