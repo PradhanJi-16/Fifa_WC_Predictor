@@ -28,8 +28,13 @@ col1, col2 = st.columns(2)
 with col1:
     st.header("🔮 Match Predictor")
 
+    
+
     team_a = st.selectbox("Team A", teams, key="team_a")
     team_b = st.selectbox("Team B", teams, key="team_b")
+
+    if team_a == team_b:
+        st.warning("Select two different teams")
 
     if st.button("Predict Match"):
         probs = predict_match(model, team_stats, team_a, team_b)
